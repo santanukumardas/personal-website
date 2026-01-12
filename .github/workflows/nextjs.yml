@@ -7,7 +7,7 @@ name: Deploy Next.js site to Pages
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
+    branches: ["main", "feature/*"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -55,11 +55,6 @@ jobs:
           cache: ${{ steps.detect-package-manager.outputs.manager }}
       - name: Setup Pages
         uses: actions/configure-pages@v4
-        with:
-          # Automatically inject basePath in your Next.js config file, and disable
-          # server side image optimization (WebP) to support deployment to GitHub Pages.
-          # Since we already have output: 'export' and unoptimized: true, this is safe.
-          static_site_generator: next
       - name: Restore cache
         uses: actions/cache@v4
         with:
@@ -71,9 +66,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
       - name: Install dependencies
-        run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+        run: npm ci
+      - name: Cleanup conflicting configs
+        run: rm -f next.config.js
       - name: Build with Next.js
-        run: ${{ steps.detect-package-manager.outputs.runner }} next build
+        run: npm run build
+      - name: List files (Debug)
+        run: |
+          echo "Current directory:"
+          ls -F
+          if [ -d "out" ]; then
+            echo "out directory exists. Listing content:"
+            ls -R out
+          else
+            echo "ERROR: out directory not found!"
+            exit 1
+          fi
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
